@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Wallet Bank — Admin Console</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        :root {
+            --prime-blue: #0047AB; --prime-dark: #002D6D; --prime-gold: #FFB900;
+            --light-gray: #F5F7FA; --border-gray: #E0E0E0;
+            --success: #2E7D32; --danger: #C62828; --warning: #F57C00;
+        }
+        body { background: #f0f4f8; min-height: 100vh; display: flex; }
+        .sidebar {
+            width: 260px; background: linear-gradient(180deg, var(--prime-dark), var(--prime-blue));
+            color: white; display: flex; flex-direction: column; padding: 24px 0; position: fixed; height: 100vh; overflow-y: auto;
+        }
+        .sidebar-logo {
+            font-size: 20px; font-weight: bold; padding: 0 24px 24px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .sidebar-menu { margin-top: 20px; list-style: none; }
+        .sidebar-menu li { margin: 4px 0; }
+        .sidebar-menu a {
+            display: flex; align-items: center; gap: 12px; padding: 14px 24px; color: white;
+            text-decoration: none; font-size: 15px; transition: 0.2s;
+        }
+        .sidebar-menu a:hover, .sidebar-menu a.active { background: rgba(255,255,255,0.15); border-left: 4px solid var(--prime-gold); }
+        .sidebar-menu .icon { font-size: 18px; width: 24px; text-align: center; }
+        .badge {
+            background: var(--danger); color: white; font-size: 11px; font-weight: bold;
+            padding: 2px 8px; border-radius: 12px; margin-left: auto;
+        }
+        .sidebar-footer { margin-top: auto; padding: 16px 24px; font-size: 13px; opacity: 0.8; }
+        .main-content { margin-left: 260px; flex: 1; padding: 24px 32px; }
+        .top-bar {
+            background: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
+        }
+        .page-title { font-size: 22px; font-weight: bold; color: var(--prime-dark); }
+        .admin-info { display: flex; align-items: center; gap: 12px; }
+        .btn {
+            padding: 10px 18px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500;
+            cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-primary { background: var(--prime-blue); color: white; }
+        .btn-primary:hover { background: var(--prime-dark); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline { background: white; border: 1px solid #ccc; color: #333; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-value { font-size: 28px; font-weight: bold; color: var(--prime-dark); margin-bottom: 6px; }
+        .stat-label { color: #666; font-size: 14px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px; overflow: hidden; }
+        .card-header { padding: 18px 24px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold; color: var(--prime-dark); display: flex; justify-content: space-between; align-items: center; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+        th { background: #f8f9fa; font-weight: 600; color: #444; }
+        tr:hover { background: #fafafa; }
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .status.pending { background: #fff3cd; color: #856404; }
+        .status.approved { background: #d4edda; color: #155724; }
+        .status.declined { background: #f8d7da; color: #721c24; }
+        .action-buttons { display: flex; gap: 6px; }
+        .modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 650px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { padding: 18px 24px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold; color: var(--prime-dark); display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 24px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: 500; color: #333; font-size: 14px; }
+        input, textarea, select {
+            width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;
+            font-size: 14px; transition: 0.2s;
+        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--prime-blue); }
+        .hidden { display: none !important; }
+    </style>
+
+    <!-- 🔒 ADMIN PASSWORD PROTECTION — CHANGE THIS TO YOUR OWN SECRET PASSWORD! -->
+    <script>
+        const ADMIN_PASSWORD = "MySecurePass2026!"; // <<< CHANGE THIS TO YOUR OWN PASSWORD!
+        const enteredPassword = prompt("🔐 Enter Admin Password to continue:");
+        if (enteredPassword !== ADMIN_PASSWORD) {
+            alert("❌ Incorrect password — Access Denied!");
+            window.location.href = "index.html";
+        }
+    </script>
+</head>
+<body>
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="sidebar-logo"><span>🏦</span> Prime Wallet Bank</div>
+    <ul class="sidebar-menu">
+        <li><a href="#" class="active" onclick="showSection('dashboard')"><span class="icon">📊</span> Dashboard Overview</a></li>
+        <li><a href="#" onclick="showSection('pending-registrations')"><span class="icon">📝</span> Pending Registrations <span class="badge" id="pending-count">12</span></a></li>
+        <li><a href="#" onclick="showSection('all-users')"><span class="icon">👥</span> All Users</a></li>
+        <li><a href="#" onclick="showSection('verification-codes')"><span class="icon">🔐</span> Verification Codes</a></li>
+        <li><a href="#" onclick="showSection('transfers')"><span class="icon">💸</span> Transfers & Transactions</a></li>
+        <li><a href="#" onclick="showSection('cards')"><span class="icon">💳</span> Issued Cards</a></li>
+        <li><a href="#" onclick="showSection('settings')"><span class="icon">⚙️</span> Admin Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+        Logged in as: <strong>Super Admin</strong><br>
+        Prime Wallet Bank © 2026
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="top-bar">
+        <h1 class="page-title" id="page-title">Admin Dashboard</h1>
+        <div class="admin-info">
+            <button class="btn btn-outline">🔔 Notifications</button>
+            <button class="btn btn-danger" onclick="alert('Logged out')">🚪 Logout</button>
+        </div>
+    </div>
+
+    <div id="dashboard" class="section">
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-value">12</div><div class="stat-label">Pending Registrations</div></div>
+            <div class="stat-card"><div class="stat-value">1,458</div><div class="stat-label">Active Users</div></div>
+            <div class="stat-card"><div class="stat-value">$245,678</div><div class="stat-label">Total Transaction Volume</div></div>
+            <div class="stat-card"><div class="stat-value">32</div><div class="stat-label">Pending Card Issuance</div></div>
+        </div>
+        <div class="card">
+            <div class="card-header">Recent Activity</div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Date</th><th>Activity</th><th>User/Admin</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr><td>2026-08-11 04:12</td><td>New user registration: john.doe@example.com</td><td>System</td><td><span class="status pending">Pending Review</span></td></tr>
+                        <tr><td>2026-08-11 03:45</td><td>Approved user: sarah@example.com</td><td>Admin</td><td><span class="status approved">Approved</span></td></tr>
+                        <tr><td>2026-08-11 03:30</td><td>Transfer: $1,200 sent to GTB Nigeria</td><td>mike@example.com</td><td><span class="status approved">Completed</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="pending-registrations" class="section hidden">
+        <div class="card">
+            <div class="card-header"><span>Pending Account Registrations</span><button class="btn btn-sm btn-primary">📥 Export List</button></div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Full Name</th><th>Email</th><th>Phone</th><th>Country</th><th>Submitted</th><th>ID Type</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>John Michael Morgan</td><td>john.morgan@example.com</td><td>+1 555-123-4567</td><td>United States</td><td>2026-08-10</td><td>Driver's License</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-sm btn-primary" onclick="viewRegistration(1)">View</button>
+                                    <button class="btn btn-sm btn-success" onclick="approveUser(1)">Approve</button>
+                                    <button class="btn btn-sm btn-danger" onclick="declineUser(1)">Decline</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Adebayo Oluwaseun</td><td>adebayo@example.com</td><td>+234 800-123-4567</td><td>Nigeria</td><td>2026-08-10</td><td>National ID</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-sm btn-primary" onclick="viewRegistration(2)">View</button>
+                                    <button class="btn btn-sm btn-success" onclick="approveUser(2)">Approve</button>
+                                    <button class="btn btn-sm btn-danger" onclick="declineUser(2)">Decline</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="all-users" class="section hidden">
+        <div class="card">
+            <div class="card-header"><span>All Registered Users</span><input type="search" placeholder="Search users..." style="width:250px;"></div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Name</th><th>Email</th><th>Country</th><th>Status</th><th>Balance</th><th>Registered</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr><td>Sarah Smith</td><td>sarah@example.com</td><td>United States</td><td><span class="status approved">Active</span></td><td>$12,450.00</td><td>2026-08-05</td><td><button class="btn btn-sm btn-primary" onclick="viewUser(1)">View</button></td></tr>
+                        <tr><td>Chinonso Nnaji</td><td>chinonso@example.com</td><td>Nigeria</td><td><span class="status approved">Active</span></td><td>$8,720.00</td><td>2026-08-03</td><td><button class="btn btn-sm btn-primary" onclick="viewUser(2)">View</button></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="verification-codes" class="section hidden">
+        <div class="card">
+            <div class="card-header"><span>Generate & Release Verification Codes</span></div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>User</th><th>Email Code</th><th>SMS Code</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>john.morgan@example.com</td><td><input type="text" value="739214" class="btn-sm"></td><td><input type="text" value="482105" class="btn-sm"></td><td><span class="status pending">Not Sent</span></td><td><button class="btn btn-sm btn-primary" onclick="releaseCodes()">Release Codes to User</button></td></tr>
+                        </tr>
+                        <tr>
+                            <td>adebayo@example.com</td><td><input type="text" value="193845" class="btn-sm"></td><td><input type="text" value="629174" class="btn-sm"></td><td><span class="status approved">Sent</span></td><td><button class="btn btn-sm btn-outline" disabled>Already Released</button></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="transfers" class="section hidden">
+        <div class="card">
+            <div class="card-header"><span>All Transactions & Transfers</span>
+                <select style="padding:6px;">
+                    <option>All Statuses</option><option>Pending</option><option>Completed</option><option>Failed</option>
+                </select>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Date</th><th>From User</th><th>To Bank / Account</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr><td>2026-08-11 02:14</td><td>mike@example.com</td><td>GTB Nigeria / ******321</td><td>$1,200.00</td><td><span class="status approved">Completed</span></td><td><button class="btn btn-sm btn-primary">View Receipt</button></td></tr>
+                        <tr><td>2026-08-11 01:05</td><td>john@example.com</td><td>Bank of America / ******789</td><td>$500.00</td><td><span class="status pending">Pending</span></td><td><button class="btn btn-sm btn-success">Approve</button></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="cards" class="section hidden">
+        <div class="card">
+            <div class="card-header"><span>Issued Prime Wallet Cards</span><button class="btn btn-sm btn-primary" onclick="showIssueCardModal()">+ Issue New Card</button></div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Cardholder</th><th>Card Number</th><th>Expiry</th><th>Status</th><th>Issued</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr><td>Sarah Smith</td><td>****-****-****-4289</td><td>08/29</td><td><span class="status approved">Active</span></td><td>2026-08-06</td><td><button class="btn btn-sm btn-primary">View Details</button></td></tr>
+                        <tr><td>Chinonso Nnaji</td><td>****-****-****-7152</td><td>07/29</td><td><span class="status approved">Active</span></td><td>2026-08-04</td><td><button class="btn btn-sm btn-primary">View Details</button></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings" class="section hidden">
+        <div class="card">
+            <div class="card-header">System Settings</div>
+            <div class="modal-body">
+                <div class="form-group"><label>Site Name</label><input type="text" value="Prime Wallet Bank"></div>
+                <div class="form-group"><label>Support Email</label><input type="email" value="support@primewalletbank.com"></div>
+                <div class="form-group"><label>Default Transaction Fee (%)</label><input type="number" step="0.01" value="1.5"></div>
+                <button class="btn btn-primary">Save All Settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showSection(sectionId) {
+    document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+    document.getElementById(sectionId).classList.remove('hidden');
+    document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
+    document.querySelector(`.sidebar-menu a[href="#"][onclick*="${sectionId}"]`).classList.add('active');
+    document.getElementById('page-title').textContent = sectionId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+function viewRegistration(id) { alert('View registration details — full data would load here.'); }
+function approveUser(id) { if(confirm("Approve this user?")) alert("User approved!"); }
+function declineUser(id) { if(confirm("Decline this user?")) alert("User declined."); }
+function viewUser(id) { alert("View user details — full profile would load here."); }
+function releaseCodes() { alert("Verification codes released to user!"); }
+function showIssueCardModal() { alert("Issue new card form would open here."); }
+</script>
+</body>
+</html>
